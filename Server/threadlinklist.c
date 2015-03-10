@@ -1,11 +1,12 @@
 
-#include<stdio.h>
-#include<string.h> //strlen
-#include<stdlib.h> //strlen
-#include<sys/socket.h>
-#include<arpa/inet.h> //inet_addr
-#include<unistd.h> //write
-#include<pthread.h> //for threading , link with lpthread
+#include <stdio.h>
+#include <string.h> //strlen
+#include <stdlib.h> //strlen
+#include <sys/socket.h>
+#include <arpa/inet.h> //inet_addr
+#include <unistd.h> //write
+#include <pthread.h> //for threading , link with lpthread
+#include <fcntl.h>
 //the thread function
 pthread_mutex_t lock;
 
@@ -17,6 +18,7 @@ struct node
 };
 
 struct node *head, *tail;
+int countuser=0;
 
 void init()
 {
@@ -40,7 +42,7 @@ struct node* append(int nilai, char nama[])
     strcpy(t->nama,nama);
     t->next=tail;
     ptr->next=t;
-    printf("nama di append: %s\n", head->next->nama);
+    countuser=countuser+1;
     return ptr;
 }
 
@@ -49,6 +51,7 @@ void delete(struct node *ptr)
     struct node *t;
     t=ptr->next;
     ptr->next=ptr->next->next;
+    countuser=countuser-1;
     free(t);
 
 }
@@ -118,8 +121,8 @@ int main(int argc , char *argv[])
 	puts("Waiting for incoming connections...");
 	c = sizeof(struct sockaddr_in);
 	//Accept and incoming connection
-	puts("Waiting for incoming connections...");
-	c = sizeof(struct sockaddr_in);
+	// puts("Waiting for incoming connections...");
+	// c = sizeof(struct sockaddr_in);
 	
 	pthread_t thread_id;
 	init();
@@ -151,23 +154,112 @@ int main(int argc , char *argv[])
 * This will handle connection for each client
 * */
 
+void readMsg(int sock, char msg[]){
+	int retval;
+	char buf[2];
+
+	bzero(&msg, sizeof(msg));
+	while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
+		{
+			buf[retval]='\0';
+			if (buf[0]=='\r'){
+				retval=read(sock, buf, sizeof(buf)-1);
+				break;
+			}	
+
+			sprintf(msg, "%s%s", msg, buf);
+		}
+}
+
+void sendOnUser(void *socket_desc){
+	int sock = *(int*)socket_desc;
+	char onuser[1024], msg[1024];
+	struct node *ptr;
+	ptr=head;
+
+	sprintf(msg, "ONUSER ");
+	bzero(&onuser, sizeof(onuser));
+
+	if(countuser==1){
+		sprintf(msg, "%s%s\r\n", msg, ptr->next->nama);
+		strcpy(onuser, ptr->next->nama);
+		write(sock, msg, strlen(msg));
+	}
+
+	else if (countuser > 1){
+		int i;
+		for (i = 1; i <= countuser; ++i)
+		{
+			ptr=ptr->next;
+			if (i==1){
+				sprintf(onuser, "%s%s", onuser, ptr->nama);
+				// strcpy(onuser, ptr->next->nama);
+			}
+
+			else{
+				sprintf(onuser, "%s,%s", onuser, ptr->nama);
+			}
+
+		}
+		sprintf(msg, "%s%s\r\n", msg, onuser);
+		write(sock, msg, strlen(msg));
+	}
+	// sprintf(onuser, "%s%s", onuser, ptr->nama);
+	// while (ptr != tail) {
+	// 	ptr = ptr->next;
+	// 	sprintf(onuser, "%s,%s", onuser, ptr->nama);
+	// };
+
+	// printf("%s\n", onuser);
+}
 
 void *connection_handler(void *socket_desc)
 {
 	//Get the socket descriptor
-	char name[50], buf[2], perv;
+	char buf[2], perv;
 	int flag=0, retval;
 	struct node * ptr;
 	ptr= (struct node *) malloc(sizeof(*ptr));
 	
 	int sock = *(int*)socket_desc;
-	int read_size;
-	char *dest, *pesan, userdest[5];
-	char *message , client_message[1024];
-	//Send some messages to the client
-	message="Write your username:  ";
-	write(sock , message , strlen(message));
+	int read_size, session=0;
+	char *cmd, *detail, userdest[5];
+	char msg[1024], *temp, client_message[1024];
+	
+	
+	write(sock , "Welcome, random citizen!\r\n" , strlen("Welcome, random citizen!\r\n"));
 
+	while (session==0){
+		// readMsg(sock, msg);
+		bzero(&msg, sizeof(msg));
+		while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
+		{
+			buf[retval]='\0';
+			if (buf[0]=='\r'){
+				retval=read(sock, buf, sizeof(buf)-1);
+				break;
+			}	
+
+			sprintf(msg, "%s%s", msg, buf);
+		}
+
+		
+		cmd = strtok(msg, " ");
+		detail = strtok(NULL, " ");
+
+		if((strcmp(cmd, "USER"))==0){
+			append(sock, detail);
+			session=1;
+		}
+	}
+
+	sendOnUser(socket_desc);
+
+
+	while(1){
+
+	}
+	/*
 	while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
 		{
 			buf[retval]='\0';
@@ -204,24 +296,23 @@ void *connection_handler(void *socket_desc)
 
 		//end of string marker
 
-		printf("client_message: %s\n", client_message);
-
-		// sscanf(client_message, "%s %s", dest, pesan);
-		printf("oioioiooi\n");
 		
-		// strtok_r (client_message, " ", &dest);
-		// printf("destinasi: %s string %s\n headnama: %s\n", dest, pesan, head->nama);
-		// strcpy (pesan, dest);
-		//Send the message back to client
-		ptr=getnode("fak");
-		// printf("isi pesan string %s\n untuk %s  dengan sock %d", client_message,ptr->nama, ptr->sock);
+		printf("destinasi: %s string %s\n", dest, client_message);
+		dest=strtok(client_message," ");
+		temp=strtok(NULL," ");
+		printf("destinasi: %s string %s\n", dest, client_message);
 
 		//Send the message back to client
-		// write(ptr->sock , pesan , strlen(pesan));
+		ptr=getnode(dest);
+		printf("isi pesan string %s\n untuk %s  dengan sock %d", temp,ptr->nama, ptr->sock);
+
+		//Send the message back to client
+		write(ptr->sock , client_message , strlen(client_message));
 
 		//clear the message buffer
 		memset(client_message, 0, 2000);
 	}
+	*/
 
 	if(read_size == 0)
 	{
