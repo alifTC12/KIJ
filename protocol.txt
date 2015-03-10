@@ -1,9 +1,9 @@
 1. Koneksi ke server, server accept client
 2. klien mengirimkan command: "USER <username>\r\n"
 	2.1 Kalau oke, server memebalas dengan: "200 OK\r\n"
-3. Server langsung mengirimkan list user dengan format: "ONUSER <username>\r\n<username>\r\n<username>\r\n\r\n"
+3. Server langsung mengirimkan list user dengan format: "ONUSER <username>,<username>,<username>\r\n"
 
-4. Jika ingin mengirim pesan, command yg harus dikirimkan client dalah: "TALK <destinasi>\r\n<pesan>\r\n\r\n"	
-5. jika mendapa pesan, client akan menerima: "TALKEDTO <sumber>\r\n<pesan>\r\n\r\n"
+4. Jika ingin mengirim pesan, command yg harus dikirimkan client dalah: "TALK <destinasi>:<pesan>\r\n"	
+5. jika mendapa pesan, client akan menerima: "TALKEDTO <sumber>:<pesan>\r\n"
 6. Jika ingin menanyakan user online, client mengirim command: "WHO\r\n"
 7. Jika client ingin keluar, maka mengirimkan command: "BYE\r\n"
