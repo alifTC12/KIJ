@@ -27,28 +27,20 @@ void init()
 }
 
 
-struct node* append(int nilai, char nama[], int read_size)
+struct node* append(int nilai, char nama[])
 {
     struct node *ptr;
     struct node *t;
     ptr=head;
     while (ptr->next!=tail ) ptr=ptr->next;
+
     t=(struct node *)malloc(sizeof(*t));
     t->sock=nilai;
 
-    char nametemp[read_size-2];
-	bzero(nametemp,read_size-2);
-	int i;
-	for ( i=0; i<read_size-2; i++)
-	{
-		nametemp[i]=nama[i];
-		printf("%c ",nametemp[i] );
-	}
-
-    strcpy(t->nama,nametemp);
-    printf("nama di append: %s\n", nametemp);
+    strcpy(t->nama,nama);
     t->next=tail;
     ptr->next=t;
+    printf("nama di append: %s\n", head->next->nama);
     return ptr;
 }
 
@@ -65,14 +57,16 @@ struct node * getnode(char nama[])
 {
 	struct node *ptr;
 	ptr=head;
+
 	while(ptr->next!=tail)
 	{
+		ptr=ptr->next;
 		if (strcmp(ptr->nama,nama)==0)
 		{
-			break;
+			printf("ptrnama: %s\n", ptr->nama);
+			// break;
 			return ptr;
 		}
-		ptr=ptr->next;
 	}
 	return 0;
 }
@@ -80,7 +74,7 @@ struct node * getnode(char nama[])
 void cetak()
 {
 	struct node *ptr;
-	printf("username: \n");
+	printf("username:  ");
 	ptr=head;
 	while (ptr != tail) {
 	printf("%s\n",ptr->nama);
@@ -161,43 +155,69 @@ int main(int argc , char *argv[])
 void *connection_handler(void *socket_desc)
 {
 	//Get the socket descriptor
-	char name[50];
-	int flag=0;
+	char name[50], buf[2], perv;
+	int flag=0, retval;
 	struct node * ptr;
 	ptr= (struct node *) malloc(sizeof(*ptr));
 	
 	int sock = *(int*)socket_desc;
 	int read_size;
-	char *dest, pesan[2048],userdest[5];
-	char *message , client_message[2000];
+	char *dest, *pesan, userdest[5];
+	char *message , client_message[1024];
 	//Send some messages to the client
 	message="Write your username:  ";
 	write(sock , message , strlen(message));
-	read_size=recv(sock, name,1024, 0);
+
+	while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
+		{
+			buf[retval]='\0';
+			if (buf[0]=='\r'){
+				retval=read(sock, buf, sizeof(buf)-1);
+				break;
+			}	
+
+			sprintf(name, "%s%s", name, buf);
+		}
+	// read_size=recv(sock, name,1024, 0);
 	
-	printf("panjang %d\n", read_size);
-	append(sock,name,read_size);
+	printf("nama: %s: panjang %d\n", name, read_size);
+
+	append(sock, name);
+	
 	cetak();
-	message = "Greetings! I am your connection handler\n";
+	message = "Greetings! I am your connection handler\r\n";
 	write(sock , message , strlen(message));
 	
 
 	//Receive a message from client
-	while( (read_size = recv(sock , client_message , 2000 , 0)) > 0 )
+	while(1)
 	{
+		bzero(&client_message, sizeof(client_message));
+		while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
+		{
+			buf[retval]='\0';
+			if (perv=='\r' && buf[0]=='\n')
+				break;
+			perv=buf[0];
+			sprintf(client_message, "%s%s", client_message, buf);
+		}
 
 		//end of string marker
-		client_message[read_size] = '\0';
+
 		printf("client_message: %s\n", client_message);
-		strtok_r (client_message, " ", &dest);
-		strcpy (pesan, dest);
-		printf("destinasi string %s\n", pesan);
+
+		// sscanf(client_message, "%s %s", dest, pesan);
+		printf("oioioiooi\n");
+		
+		// strtok_r (client_message, " ", &dest);
+		// printf("destinasi: %s string %s\n headnama: %s\n", dest, pesan, head->nama);
+		// strcpy (pesan, dest);
 		//Send the message back to client
-		ptr=getnode(client_message);
-		printf("isi pesan string %s\n untuk %s  dengan sock %d", pesan,ptr->nama, ptr->sock);
+		ptr=getnode("fak");
+		// printf("isi pesan string %s\n untuk %s  dengan sock %d", client_message,ptr->nama, ptr->sock);
 
 		//Send the message back to client
-		write(ptr->sock , pesan , strlen(pesan));
+		// write(ptr->sock , pesan , strlen(pesan));
 
 		//clear the message buffer
 		memset(client_message, 0, 2000);
