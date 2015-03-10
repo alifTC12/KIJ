@@ -204,13 +204,6 @@ void sendOnUser(void *socket_desc){
 		sprintf(msg, "%s%s\r\n", msg, onuser);
 		write(sock, msg, strlen(msg));
 	}
-	// sprintf(onuser, "%s%s", onuser, ptr->nama);
-	// while (ptr != tail) {
-	// 	ptr = ptr->next;
-	// 	sprintf(onuser, "%s,%s", onuser, ptr->nama);
-	// };
-
-	// printf("%s\n", onuser);
 }
 
 void *connection_handler(void *socket_desc)
@@ -223,14 +216,11 @@ void *connection_handler(void *socket_desc)
 	
 	int sock = *(int*)socket_desc;
 	int read_size, session=0;
-	char *cmd, *detail, userdest[5];
-	char msg[1024], *temp, client_message[1024];
+	char *cmd, *detail, username[20], userdest[5];
+	char msg[1024], pesan[1024], *temp, *client_message, *src, *dest;
 	
-	
-	write(sock , "Welcome, random citizen!\r\n" , strlen("Welcome, random citizen!\r\n"));
 
 	while (session==0){
-		// readMsg(sock, msg);
 		bzero(&msg, sizeof(msg));
 		while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
 		{
@@ -246,21 +236,18 @@ void *connection_handler(void *socket_desc)
 		
 		cmd = strtok(msg, " ");
 		detail = strtok(NULL, " ");
-
+		strcpy(username,detail);
 		if((strcmp(cmd, "USER"))==0){
-			append(sock, detail);
+			append(sock, username);
 			session=1;
+			sendOnUser(socket_desc);
 		}
 	}
 
-	sendOnUser(socket_desc);
-
-
+	
 	while(1){
-
-	}
-	/*
-	while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
+		bzero(&msg, sizeof(msg));
+		while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
 		{
 			buf[retval]='\0';
 			if (buf[0]=='\r'){
@@ -268,52 +255,33 @@ void *connection_handler(void *socket_desc)
 				break;
 			}	
 
-			sprintf(name, "%s%s", name, buf);
-		}
-	// read_size=recv(sock, name,1024, 0);
-	
-	printf("nama: %s: panjang %d\n", name, read_size);
-
-	append(sock, name);
-	
-	cetak();
-	message = "Greetings! I am your connection handler\r\n";
-	write(sock , message , strlen(message));
-	
-
-	//Receive a message from client
-	while(1)
-	{
-		bzero(&client_message, sizeof(client_message));
-		while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
-		{
-			buf[retval]='\0';
-			if (perv=='\r' && buf[0]=='\n')
-				break;
-			perv=buf[0];
-			sprintf(client_message, "%s%s", client_message, buf);
+			sprintf(msg, "%s%s", msg, buf);
 		}
 
-		//end of string marker
+		cmd = strtok(msg, " ");
 
-		
-		printf("destinasi: %s string %s\n", dest, client_message);
-		dest=strtok(client_message," ");
-		temp=strtok(NULL," ");
-		printf("destinasi: %s string %s\n", dest, client_message);
+		if((strcmp(cmd, "WHO"))==0){
+			sendOnUser(socket_desc);
+		}
 
-		//Send the message back to client
-		ptr=getnode(dest);
-		printf("isi pesan string %s\n untuk %s  dengan sock %d", temp,ptr->nama, ptr->sock);
+		else if ((strcmp(cmd, "TALKTO"))==0){
+			bzero(&pesan, sizeof(pesan));
+			dest = strtok(NULL, ":");
+			client_message = strtok(NULL, "");
+			ptr=getnode(dest);
+			
+			sprintf(pesan, "TALKEDTO ");
+			sprintf(pesan, "%s%s:%s\r\n", pesan, username, client_message);
+			write(ptr->sock, pesan, strlen(pesan));
+		}
 
-		//Send the message back to client
-		write(ptr->sock , client_message , strlen(client_message));
-
-		//clear the message buffer
-		memset(client_message, 0, 2000);
+		else if((strcmp(cmd, "BYE"))==0){
+			ptr=getnode(username);
+			delete(ptr);
+			printf("username:%s has disconnected\n", username);
+			break;
+		}
 	}
-	*/
-
 	if(read_size == 0)
 	{
 		puts("Client disconnected");
@@ -324,5 +292,6 @@ void *connection_handler(void *socket_desc)
 	{
 		perror("recv failed");
 	}
+	close(sock);
 	return 0;
 } 
