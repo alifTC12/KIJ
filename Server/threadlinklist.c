@@ -67,7 +67,7 @@ struct node * getnode(char nama[])
 		if (strcmp(ptr->nama,nama)==0)
 		{
 			printf("ptrnama: %s\n", ptr->nama);
-			// break;
+			
 			return ptr;
 		}
 	}
