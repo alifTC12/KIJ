@@ -1,2 +1,0 @@
-multithreadserver.MultiThreadServer
-multithreadserver.MultiThreadServer$ClientHandler

@@ -2,48 +2,35 @@ package multithreadserver;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-public class Client {
-    
+import java.io.BufferedWriter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+public class Client 
+{
     private InetAddress host;
-    private int PORT ;
-    //private int tport = 1212;
+    private int PORT;
     private String server,username;   
     private ClientForm cGui;
-    private ObjectInputStream sInput;		
-    private ObjectOutputStream sOutput;	 
+    private DataInputStream sInput;		
+    private DataOutputStream sOutput;	 
     private Socket socket;
+    private BufferedReader reader;
+    OutputStream os;
+    InputStream is;
     
     //constructor
-    Client(String server, int PORT, String username, ClientForm cfr)
+    Client(String server, int PORT, String username, ClientForm cgui)
     {
-       //System.out.println("this is ip " + server + "\n");
-       //System.out.println("this is port " + PORT);
        this.server = server;
        this.PORT = PORT;
-       this.cGui = cfr;
        this.username = username;
+       this.cGui = cgui;
     }
     
-    /*public void main (String[] args)
-    {
-      
-        try
-        {
-            //host = InetAddress.getLocalHost();
-            host = InetAddress.getByName(iphost);
-        }
-        catch(UnknownHostException uhEx)
-                {
-                    System.out.println("\nHost ID not Found!\n");
-                    System.exit(1);
-                }
-        sendMessages();
-    }*/
+    
     //start client
     public boolean start()
     {
-        
-        //Socket socket = null;
         //try connect ke server
         try
         {
@@ -57,19 +44,24 @@ public class Client {
             display("Error connectiong to server:" + ec);			
 	    return false;
         }
-         //System.out.println("this is hostasli " + host + "\n" );
-        //System.out.println("this is tport " + PORT + "\n" );
+        
         
         String msg = "> Connection accepted " + socket.getInetAddress() + ":" + socket.getPort() + "\n";
-        System.out.println(msg);
+        //System.out.println(msg);
         display(msg);
-        
+       
         /* Data Stream */
+        new ListenFromServer().start();
+        
 	try
 	 {
-            sInput  = new ObjectInputStream(socket.getInputStream());
-            sOutput = new ObjectOutputStream(socket.getOutputStream());
+            sInput  = new DataInputStream(socket.getInputStream());
+            sOutput = new DataOutputStream(socket.getOutputStream());
+            os = new BufferedOutputStream(socket.getOutputStream());
+            is = new BufferedInputStream(socket.getInputStream());
 	 }
+        
+        
 		
         catch (IOException eIO) 
          {
@@ -78,13 +70,19 @@ public class Client {
             return false;
          }
         
+        
         // creates the Thread to listen from the server 
 	new ListenFromServer().start();       
         // Send our username to the server this is the only message that we
         // will send as a String. All other messages will be ChatMessage objects
         try 
         {
-            sOutput.writeObject(username);
+            //sOutput.writeObject(username);
+            
+             String connect = "USER " + username + "\r\n";
+             System.out.print(connect);    
+             os.write(connect.getBytes());
+             os.flush(); // Send off the data
         } 
         catch (IOException eIO) 
         {
@@ -92,11 +90,17 @@ public class Client {
             disconnect();
             return false;
         }    
+        
         // success we inform the caller that it worked
+       
+     
 	return true;
+        
     }
     
-    private void display(String msg) {
+       private void display(String msg) 
+    
+        {
 		if(cGui == null)
 			System.out.println(msg);      // println in console mode
 		else
@@ -106,10 +110,11 @@ public class Client {
     /*
      * To send a message to the server
      */
-     void sendMessage(chatHandler msg) 
+     void sendMessage(String msg) 
      {
         try {
-		sOutput.writeObject(msg);
+                os.write(msg.getBytes());
+                os.flush(); // Send off the data
             }
 	catch(IOException e) 
             {
@@ -149,33 +154,58 @@ public class Client {
 			
 	}
         
-    class ListenFromServer extends Thread {
+        
+        
+    class ListenFromServer extends Thread 
+    {
 
-		public void run() {
-			while(true) {
+		public void run() 
+                {
+                    try {
+                        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    } catch (IOException ex) {
+                        Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+			while(true) 
+                        {
 				try {
-					String msg = (String) sInput.readObject();
+					String msg = reader.readLine();
 					// if console mode print the message and add back the prompt
-					if(cGui == null) {
-						System.out.println(msg);
-						System.out.print("> ");
-					}
-					else {
-						cGui.append(msg);
-					}
+                                        String[] protokol = msg.split(" ");
+                                        //System.out.println(protokol[1]);
+                                        if(protokol[0].equals("ONUSER"))
+                                        {
+                                            String[] usr_on;
+                                            usr_on = protokol[1].split(",");
+                                            cGui.hapus();
+                                            for(int a=0; a<usr_on.length; a++)
+                                            {
+                                                cGui.updateOnlineList(usr_on[a] + "\n");
+                                                System.out.println(usr_on[a]);
+                                            }
+                                        }
+                                        else if(protokol[0].equals("TALKEDTO")) 
+                                        {
+                                            //String[] pesan =  protokol[1].split(":"); 
+                                            cGui.append(protokol[1] + "\n");
+                                        }
+                                        
 				}
-				catch(IOException e) {
+                                /*
+				catch(IOException e) 
+                                {
 					System.out.println("Server has close the connection: " + e);
 					break;
-				}
-				// can't happen with a String object but need the catch anyhow
-				catch(ClassNotFoundException e2) {
-				}
+				}*/
+                                catch(NullPointerException r)
+                                {
+                                    
+                                } catch (IOException ex) {
+                                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+                                ;
+                            }
+                                    
 			}
 		}
-    }}
-       
-         
-    
-    
-
+    }
+}
