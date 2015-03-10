@@ -14,7 +14,7 @@ struct node
 {
 	int sock;
 	char nama[100];
-	struct node *next;
+	struct node *next,*back;
 };
 
 struct node *head, *tail;
@@ -26,6 +26,8 @@ void init()
     tail=(struct node *)malloc (sizeof(*tail));
     head->next=tail;
     tail->next=tail;
+    head->back=NULL;
+    tail->back=head;
 }
 
 
@@ -42,15 +44,22 @@ struct node* append(int nilai, char nama[])
     strcpy(t->nama,nama);
     t->next=tail;
     ptr->next=t;
+    t->next=tail;
+    t->back=ptr;
     countuser=countuser+1;
     return ptr;
 }
 
 void delete(struct node *ptr)
 {
-    struct node *t;
+    struct node *t,*u;
     t=ptr;
-    ptr=ptr->next;
+    printf("%s\n",ptr->nama);
+    ptr=t->back;
+    printf("%s\n",ptr->nama);
+    ptr->next=ptr->next->next;
+    printf("%s\n",ptr->nama);
+    
     countuser=countuser-1;
     free(t);
 
