@@ -187,7 +187,9 @@ public class Client
                                         else if(protokol[0].equals("TALKEDTO")) 
                                         {
                                             //String[] pesan =  protokol[1].split(":"); 
-                                            cGui.append(protokol[1] + "\n");
+                                            for(int a=1; a<protokol.length; a++)
+                                            cGui.append(protokol[a] + " ");
+                                            cGui.append("\n");
                                         }
                                         
 				}
