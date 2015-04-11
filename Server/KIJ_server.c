@@ -15,7 +15,9 @@ struct node
 	int sock;
 	char nama[100];
 	struct node *next,*back;
+	char key[50];
 };
+
 
 struct node *head, *tail;
 int countuser=0;
@@ -31,7 +33,7 @@ void init()
 }
 
 
-struct node* append(int nilai, char nama[])
+struct node* append(int nilai, char nama[],key)
 {
     struct node *ptr;
     struct node *t;
@@ -46,6 +48,7 @@ struct node* append(int nilai, char nama[])
     ptr->next=t;
     t->next=tail;
     t->back=ptr;
+    t->key=key;
     countuser=countuser+1;
     return ptr;
 }
@@ -187,7 +190,7 @@ void sendOnUser(void *socket_desc){
 	char onuser[1024], msg[1024];
 	struct node *ptr;
 	ptr=head;
-
+	
 	sprintf(msg, "ONUSER ");
 	bzero(&onuser, sizeof(onuser));
 
@@ -232,7 +235,8 @@ void *connection_handler(void *socket_desc)
 	int flag=0, retval;
 	struct node * ptr;
 	ptr= (struct node *) malloc(sizeof(*ptr));
-	
+	ptr2= (struct node *) malloc(sizeof(*ptr2));
+	char key[50];
 	int sock = *(int*)socket_desc;
 	int read_size, session=0;
 	char *cmd, *detail, username[20], userdest[5];
@@ -258,9 +262,12 @@ void *connection_handler(void *socket_desc)
 		cmd = strtok(msg, " ");
 		detail = strtok(NULL, " ");
 		strcpy(username,detail);
+		detail=strtok(NULL," ");
+		strcpy(key,detail);
+		
 		if((strcmp(cmd, "USER"))==0){
 //			printf("%s",username);
-			append(sock, username);
+			append(sock, username,key);
 			session=1;
 			sendOnUser(socket_desc);
 		}
@@ -304,6 +311,15 @@ void *connection_handler(void *socket_desc)
 			printf("username:%s has disconnected\n", username);
 			break;
 		}
+		else if((strcmp(cmd,"CHATWITH"))==0)
+		{
+			char nama_penerima[20]=strtok(NULL," ");//get nama_peneriman
+			ptr=getnode(nama_penerima);
+			write(sock,ptr->key,strlen(ptr->key));//distribusi key ke perequest chat
+			ptr2=getnode(username);
+			write(ptr->sock,ptr2->key,strlen(ptr2->key));//distribusi key ke pe penerimachat
+		}
+			
 	}
 	if(read_size == 0)
 	{

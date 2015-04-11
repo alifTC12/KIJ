@@ -7,3 +7,12 @@
 5. jika mendapa pesan, client akan menerima: "TALKEDTO <sumber>:<pesan>\r\n"
 6. Jika ingin menanyakan user online, client mengirim command: "WHO\r\n"
 7. Jika client ingin keluar, maka mengirimkan command: "BYE\r\n"
+8. Jika client ingin chat dengan seseorang, maka client akan merequest dengan CHATWITH <Username_Tujuan>
+9. Server akan merespon dengan KEY <KeyPublic> dari penerima
+10. Ketika selesai 
+11. Pesan yang di enskripsi hanya pesan yang ditulis oleh klien, sedangkan header tidak di enkkripsi
+12. Pesan yang dikirim dicari hash function dan hasil hash function digabungkan dengan pesan sehingga hasil pesan TALK <destinasi>:<hash> <pesan>\r\n
+dimana <hash> <pesan> tersebut sudah dienkripsi
+13. penerima menenkripsi dan mendapatkan hash function, penerima mengecek apakah pesan yang diterima benar dari pengirim, jika hash function yang didapatkan berbeda maka client mengirim kan request
+TALKEDTO <tujuan> : <Pesan Gagal>
+14. Prosedur ke 14 sama seperti pengiriman pesan biasa, hanya dilakukan di background proses
