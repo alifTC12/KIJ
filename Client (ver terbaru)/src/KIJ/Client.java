@@ -93,6 +93,7 @@ public class Client
              String connect = "USER " + username + "\r\n";
              //System.out.print(connect);    
              os.write(connect.getBytes());
+             
              os.flush(); // Send off the data
         } 
         catch (IOException eIO) 
@@ -210,6 +211,10 @@ public class Client
                                             for(int a=1; a<protokol.length; a++)
                                             cFieldGui.append(protokol[a] + " ");
                                             cFieldGui.append("\n");
+                                        }
+                                        else if(protokol[0].equals("KEY"))
+                                        {
+                                            
                                         }
                                         
 				}

@@ -18,7 +18,7 @@ struct node
 	char key[50];
 };
 
-
+int q,a;
 struct node *head, *tail;
 int countuser=0;
 
@@ -33,7 +33,7 @@ void init()
 }
 
 
-struct node* append(int nilai, char nama[],key)
+struct node* append(int nilai, char nama[],char key[])
 {
     struct node *ptr;
     struct node *t;
@@ -48,7 +48,7 @@ struct node* append(int nilai, char nama[],key)
     ptr->next=t;
     t->next=tail;
     t->back=ptr;
-    t->key=key;
+    strcpy(t->key,key);
     countuser=countuser+1;
     return ptr;
 }
@@ -98,7 +98,6 @@ void cetak()
 }
 
 void *connection_handler(void *);
-
 
 int main(int argc , char *argv[])
 {
@@ -233,7 +232,7 @@ void *connection_handler(void *socket_desc)
 	//Get the socket descriptor
 	char buf[2], perv;
 	int flag=0, retval;
-	struct node * ptr;
+	struct node * ptr, *ptr2;
 	ptr= (struct node *) malloc(sizeof(*ptr));
 	ptr2= (struct node *) malloc(sizeof(*ptr2));
 	char key[50];
@@ -313,12 +312,16 @@ void *connection_handler(void *socket_desc)
 		}
 		else if((strcmp(cmd,"CHATWITH"))==0)
 		{
-			char nama_penerima[20]=strtok(NULL," ");//get nama_peneriman
+			char *nama_penerima;
+			nama_penerima=strtok(NULL," ");//get nama_penerima
 			ptr=getnode(nama_penerima);
 			write(sock,ptr->key,strlen(ptr->key));//distribusi key ke perequest chat
 			ptr2=getnode(username);
-			write(ptr->sock,ptr2->key,strlen(ptr2->key));//distribusi key ke pe penerimachat
+			sprintf(pesan,"KEY");
+			sprintf(pesan,"%s:%s\r\n",pesan,ptr2->key);
+			write(ptr->sock,pesan,strlen(pesan));//distribusi key ke pe penerimachat
 		}
+
 			
 	}
 	if(read_size == 0)

@@ -6,6 +6,8 @@
 
 package KIJ;
 
+import java.security.InvalidKeyException;
+
 /**
  *
  * @author alif.sip
