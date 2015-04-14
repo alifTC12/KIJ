@@ -10,6 +10,9 @@
 //the thread function
 pthread_mutex_t lock;
 
+char q[8]="15319"; 
+char alfa[8]="14511";
+
 struct node
 {
 	int sock;
@@ -18,7 +21,7 @@ struct node
 	char key[50];
 };
 
-int q,a;
+
 struct node *head, *tail;
 int countuser=0;
 
@@ -240,7 +243,10 @@ void *connection_handler(void *socket_desc)
 	int read_size, session=0;
 	char *cmd, *detail, username[20], userdest[5];
 	char msg[1024], pesan[1024], *temp, *client_message, *src, *dest;
-	printf("lalala");
+	
+	sprintf(msg,"KEY: %s %s",q,alfa);
+	write(sock, msg, strlen(msg));
+
 
 	//while (session==0){
 		bzero(&msg, sizeof(msg));
@@ -300,7 +306,7 @@ void *connection_handler(void *socket_desc)
 			ptr=getnode(dest);
 			
 			sprintf(pesan, "TALKEDTO ");
-			sprintf(pesan, "%s%s:%s\r\n", pesan, username, client_message);
+			sprintf(pesan, "%s%s: %s\r\n", pesan, username, client_message);
 			write(ptr->sock, pesan, strlen(pesan));
 		}
 
