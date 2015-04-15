@@ -81,7 +81,7 @@ struct node * getnode(char nama[])
 		ptr=ptr->next;
 		if (strcmp(ptr->nama,nama)==0)
 		{
-			printf("ptrnama: %s\n", ptr->nama);
+			//printf("ptrnama: %s\n", ptr->nama);
 			
 			return ptr;
 		}
@@ -117,7 +117,7 @@ int main(int argc , char *argv[])
 	//Prepare the sockaddr_in structure
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port	 = htons( 8888);
+	server.sin_port	 = htons( 8889);
 	
 	//Bind
 	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
@@ -187,19 +187,25 @@ void readMsg(int sock, char msg[]){
 }
 */
 
-void sendOnUser(void *socket_desc){
+void sendOnUser(void *socket_desc, int flag){
 	int sock = *(int*)socket_desc;
 	char onuser[1024], msg[1024];
 	struct node *ptr;
 	ptr=head;
-	
+	char *pesan;
+	sprintf(pesan,"%s %s",q,alfa);
 	sprintf(msg, "ONUSER ");
 	bzero(&onuser, sizeof(onuser));
 
 	if(countuser==1){
-		sprintf(msg, "%s%s\r\n", msg, ptr->next->nama);
+		sprintf(msg, "%s%s", msg, ptr->next->nama);
 		strcpy(onuser, ptr->next->nama);
-		write(sock, msg, strlen(msg));
+		//write(sock, msg, strlen(msg));
+		if (flag==0){
+		sprintf(msg,"%s %s\r\n",msg,pesan);
+		
+		} 
+		write(sock,msg,strlen(msg));	
 	}
 
 	else if (countuser > 1){
@@ -209,29 +215,31 @@ void sendOnUser(void *socket_desc){
 			ptr=ptr->next;
 			if (i==1){
 				sprintf(onuser, "%s%s", onuser, ptr->nama);
+				
 				// strcpy(onuser, ptr->next->nama);
 			}
 
 			else{
-				sprintf(onuser, "%s,%s", onuser, ptr->nama);
+				sprintf(onuser, "%s %s", onuser, ptr->nama);
 			}
 
 		}
-		sprintf(msg, "%s%s\r\n", msg, onuser);
+		sprintf(msg, "%s%s", msg, onuser);
+		sprintf(msg, "%s %s\r\n", msg, pesan);
 		ptr=head;
-		while (ptr!=tail)
+		while (ptr!=tail )
 		{
-			
 				write(ptr->sock, msg, strlen(msg));
 				ptr=ptr->next;
 		}
-	
+		
 		
 	}
 }
 
 void *connection_handler(void *socket_desc)
 {
+		
 	//Get the socket descriptor
 	char buf[2], perv;
 	int flag=0, retval;
@@ -244,9 +252,9 @@ void *connection_handler(void *socket_desc)
 	char *cmd, *detail, username[20], userdest[5];
 	char msg[1024], pesan[1024], *temp, *client_message, *src, *dest;
 	
-	sprintf(msg,"KEY: %s %s",q,alfa);
-	write(sock, msg, strlen(msg));
 
+	
+	
 
 	//while (session==0){
 		bzero(&msg, sizeof(msg));
@@ -261,25 +269,23 @@ void *connection_handler(void *socket_desc)
 
 			sprintf(msg, "%s%s", msg, buf);
 		}
-		
-		printf("pesan %s", msg);
+		printf("pesan :%s\n",msg);
 		
 		cmd = strtok(msg, " ");
 		detail = strtok(NULL, " ");
 		strcpy(username,detail);
-		detail=strtok(NULL," ");
-		strcpy(key,detail);
 		
 		if((strcmp(cmd, "USER"))==0){
-//			printf("%s",username);
-			append(sock, username,key);
-			session=1;
-			sendOnUser(socket_desc);
+			printf("user %s\n",username);
+			append(sock, username, "0");
+			
+			sendOnUser(socket_desc,0);
 		}
-	//}
-	
-	
+		
+		
+	printf("\n");
 	while(1){
+		printf("sd");
 		bzero(&msg, sizeof(msg));
 		while ((retval=read(sock, buf, sizeof(buf)-1)) > 0)
 		{
@@ -291,14 +297,19 @@ void *connection_handler(void *socket_desc)
 
 			sprintf(msg, "%s%s", msg, buf);
 		}
-	printf("%s",msg);
+	printf("pesan :%s\n",msg);
 		cmd = strtok(msg, " ");
 
 		if((strcmp(cmd, "WHO"))==0){
 			printf("who");
-			sendOnUser(socket_desc);
+			sendOnUser(socket_desc,1);
 		}
-
+		
+		if((strcmp(cmd, "GETSEED"))==0){
+			sprintf(pesan,"SEED %s %s",q,alfa);
+			write(sock, pesan, strlen(pesan));
+		}
+		
 		else if ((strcmp(cmd, "TALKTO"))==0){
 			bzero(&pesan, sizeof(pesan));
 			dest = strtok(NULL, ":");
@@ -316,15 +327,31 @@ void *connection_handler(void *socket_desc)
 			printf("username:%s has disconnected\n", username);
 			break;
 		}
+		
+		else if((strcmp(cmd, "PUBLICKEY"))==0){
+			ptr=getnode(username);
+			char* pubkey;
+			pubkey = strtok(NULL, " ");
+			if (strcmp(ptr->key,"0")==0)
+			strcpy(ptr->key, pubkey);
+		}
+		
 		else if((strcmp(cmd,"CHATWITH"))==0)
 		{
-			char *nama_penerima;
+			char *nama_penerima,*keypengirim;
 			nama_penerima=strtok(NULL," ");//get nama_penerima
+			keypengirim=strtok(NULL," ");//get nama_penerima
 			ptr=getnode(nama_penerima);
-			write(sock,ptr->key,strlen(ptr->key));//distribusi key ke perequest chat
-			ptr2=getnode(username);
+			printf("getnode for %s",ptr->nama);
 			sprintf(pesan,"KEY");
-			sprintf(pesan,"%s:%s\r\n",pesan,ptr2->key);
+			sprintf(pesan,"%s %s\r\n",pesan,ptr->key);
+			printf("send %s",pesan);
+			write(sock,pesan,strlen(pesan));//distribusi key ke perequest chat
+				
+			bzero(&pesan, sizeof(pesan));
+			sprintf(pesan,"KEY");
+			sprintf(pesan,"%s %s\r\n",pesan,keypengirim);	
+			printf("send %s",pesan);
 			write(ptr->sock,pesan,strlen(pesan));//distribusi key ke pe penerimachat
 		}
 
