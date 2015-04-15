@@ -6,8 +6,8 @@
 
 package KIJ;
 
-
-import javax.swing.DefaultListModel;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -21,19 +21,26 @@ public class ChatField extends javax.swing.JFrame {
     private Client client;
     public String username;
     public String ip;
+    public String yourY;
     public int port;
-    public String sendTo;
+    public String sendTo, sender;
+    private RC4 rc4;
+    private DiffieHellman dh;
    
     
     public ChatField() {
         initComponents();  
     }
 
-    ChatField(Client client, String SendTo) {
+    ChatField(Client client, String SendTo,DiffieHellman dh ) {
         initComponents();
         this.sendTo = SendTo;
         jLabel2.setText("@" + sendTo);
         this.client = client;
+        this.dh = dh;
+        //this.yourY = client.yourY;
+        
+        
         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
@@ -116,10 +123,19 @@ public class ChatField extends javax.swing.JFrame {
 
     private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
         // TODO add your handling code here:
-            client.sendMessage("TALKTO " + sendTo + ":" + chatField.getText() + "\r\n");
-            append(username + ":" + chatField.getText() + "\n");
-            chatField.setText("");
-           
+        //rc4= new RC4("yourYfg");
+       // char[] temp="TALKTO " + sendTo + ":" + rc4.encrypt(chatField.getText().toCharArray()) + "\r\n";
+        //System.out.println("TALKTO " + sendTo + ":" + new String(rc4.encrypt(chatField.getText().toCharArray())) + "\r\n");\
+        
+        System.out.println(("key :"+dh.GetKey(client.yourY).toString()));
+        rc4 = new RC4(dh.GetKey(client.yourY).toString());
+        
+        client.sendMessage("TALKTO " + sendTo + ":" + new String(rc4.encrypt(chatField.getText().toCharArray())) + "\r\n");
+        sender = sendTo;
+        //System.out.println(new String((rc4.encrypt(chatField.getText().toCharArray()))));
+        //System.out.println(new String(rc4.decrypt("H".toCharArray())));
+        append("Me:" + chatField.getText() + "\n");
+        chatField.setText("");
     }//GEN-LAST:event_sendButtonActionPerformed
 
     private void chatFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_chatFieldActionPerformed
@@ -139,6 +155,7 @@ public class ChatField extends javax.swing.JFrame {
     void append(String str) 
     {
 		outputArea.append(str);
+                //System.out.println(this.sender);
 		outputArea.setCaretPosition(outputArea.getText().length());
     }    
     
@@ -187,8 +204,6 @@ public class ChatField extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTextArea outputArea;
     private javax.swing.JButton sendButton;
-    private javax.swing.JTextField sendto;
-    private javax.swing.JTextField sendto1;
     private javax.swing.JTextField sendto3;
     // End of variables declaration//GEN-END:variables
 }

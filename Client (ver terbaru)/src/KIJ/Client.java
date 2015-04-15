@@ -1,8 +1,7 @@
 package KIJ;
 import java.io.*;
+import java.math.BigInteger;
 import java.net.*;
-import java.util.*;
-import java.io.BufferedWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,6 +17,12 @@ public class Client
     //private DataOutputStream sOutput;	 
     private Socket socket;
     private BufferedReader reader;
+    private String textToDecrypt;
+    private RC4 rc4;
+    public String yourY;
+    private int q;
+    private int a;
+    DiffieHellman dh = new DiffieHellman(q,a);
     OutputStream os;
     InputStream is;
     
@@ -28,17 +33,17 @@ public class Client
        this.PORT = PORT;
        this.username = username;
        this.cGui = cgui;
+       rc4 = new RC4("testing");
       // this.cFieldGui = lgui;
     }
     
     public void NewChat(String sendTo, String username)
     {
-         ChatField s = new ChatField(this, sendTo.replaceAll("\n", ""));
+         ChatField s = new ChatField(this, sendTo.replaceAll("\n", ""), this.dh);
          this.cFieldGui = s;
-         //s.sendTo = 
-         System.out.print(s.sendTo);
          s.username = username;
          s.setVisible(true);
+         s.yourY = this.yourY;
     }
     
     //start client
@@ -49,6 +54,10 @@ public class Client
         {
             host = InetAddress.getByName(server);
             socket = new Socket(host,PORT);
+            os = new BufferedOutputStream(socket.getOutputStream());
+            is = new BufferedInputStream(socket.getInputStream());
+            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            
         }
                 
         catch(Exception ec) 
@@ -64,14 +73,15 @@ public class Client
         displayClientForm(msg);
        
         /* Data Stream */
-        new ListenFromServer().start();
-        
+       
+       /*
 	try
 	 {
             //sInput  = new DataInputStream(socket.getInputStream());
             //sOutput = new DataOutputStream(socket.getOutputStream());
             os = new BufferedOutputStream(socket.getOutputStream());
             is = new BufferedInputStream(socket.getInputStream());
+            
 	 }
         	
         catch (IOException eIO) 
@@ -80,28 +90,29 @@ public class Client
             displayClientForm("Exception creating new Input/output Streams: " + eIO);
             return false;
          }
-        
+        */
         
         // creates the Thread to listen from the server 
-	new ListenFromServer().start();       
-        // Send our username to the server this is the only message that we
-        // will send as a String. All other messages will be ChatMessage objects
+	new ListenFromServer().start();   
+        
         try 
         {
-            //sOutput.writeObject(username);
-            
-             String connect = "USER " + username + "\r\n";
-             //System.out.print(connect);    
+        //    String msg3 = reader.readLine();
+          //  System.out.println(msg3);
+             String connect = "USER " + username + "\r\n"; 
+            // String getSeed = "GETSEED"; 
              os.write(connect.getBytes());
+             //os.write(getSeed.getBytes());
+             os.flush(); // Send off the data  
              
-             os.flush(); // Send off the data
         } 
         catch (IOException eIO) 
         {
             displayClientForm("Exception doing login : " + eIO);
             disconnect();
             return false;
-        }    
+        } 
+      
         
         // success we inform the caller that it worked
        
@@ -110,13 +121,6 @@ public class Client
         
     }
     
-       //private void display(String msg) 
-    
-        //{
-	//	if(cGui == null) System.out.println(msg);      // println in console mode
-         ///       else cGui.append(msg + "\n");		// append to the ClientGUI JTextArea (or whatever)
-	//}
-       
        private void displayClientForm(String msg)
        {
            if(cFieldGui == null) System.out.println(msg);      // println in console mode
@@ -138,22 +142,29 @@ public class Client
             }
       }
      
+     String MakeKey()
+     {
+         
+        // System.out.println(dh.getY());
+         return dh.getY().toString();
+     }
+     
      /*
 	 * When something goes wrong
 	 * Close the Input/Output streams and disconnect not much to do in the catch clause
 	 */
-	private void disconnect() 
+     void disconnect() 
         {
 		try 
                 { 
-                   // if(sInput != null) sInput.close();
+                    if(is != null) is.close();
 		}
                 
 		catch(Exception e) {} // not much else I can do
                 
 		try
                 {
-                   // if(sOutput != null) sOutput.close();
+                    if(os != null) os.close();
 		}
                 
 		catch(Exception e) {} // not much else I can do
@@ -162,74 +173,88 @@ public class Client
                 {
                     if(socket != null) socket.close();
 		}
-		catch(Exception e) {} // not much else I can do
-		
-		// inform the GUI
-		//if(cGui != null)
-		//	cGui.connectionFailed();
-			
+		catch(Exception e) {} // not much else I can do	
 	}
         
     class ListenFromServer extends Thread 
     {
 		public void run() 
                 {
-                    try 
-                    {
-                        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    } 
-                    catch (IOException ex) 
-                    {
-                        Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+//                    try 
+//                    {
+////                        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+//                    } 
+//                    catch (IOException ex) 
+//                    {
+//                        Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+//                    }
+//                    
 			while(true) 
                         {
                             try 
                                 {
+                                        //sendMessage("GETSEED");
 					String msg = reader.readLine();
                                         System.out.println(msg);
                                         String[] protokol = msg.split(" ");
+                                        //for(int a=1; )
                                        
                                         if(protokol[0].equals("ONUSER"))
                                         {
-                                        
+                                            //System.out.println(protokol);
                                             String[] usr_on;
-                                            usr_on = protokol[1].split(",");
+                                            //usr_on = protokol[1].split(" ");
                                             cGui.hapus();
-                                            for(int a=0; a<usr_on.length; a++)
+                                            for(int z=1; z<protokol.length; z++)
                                             {
-                                                cGui.updateOnlineList(usr_on[a] + "\n");
+                                                //if(protokol[a].equalsIgnoreCase(username)) {} 
+                                                //else 
+                                                //{
+                                                
+                                                 // System.out.println(protokol.length);
+                                                  if(z==protokol.length-1) dh.setA(protokol[z]);
+                                                 // else if(z==protokol.length-2) dh.q = new BigInteger(Integer.parseInt(protokol[z]));
+                                                   else if(z==protokol.length-2) dh.setQ(protokol[z]);
+                                                  else cGui.updateOnlineList(protokol[z] + "\n");
+                                                  
+                                                 // System.out.println(q);
+                                                 // System.out.println(a);                                                
+                                                  
+                                                //}
                                                 //System.out.println(usr_on[a]);
                                                 //cFieldGui.append("haha");
                                             }
+                                            //MakeKey();
                                         }
+                                        
                                         else if(protokol[0].equals("TALKEDTO")) 
                                         {
-                                            System.out.println("yse");
-                                            //cFieldGui.append("haha");
-                                            //String[] pesan =  protokol[1].split(":"); 
-                                            for(int a=1; a<protokol.length; a++)
-                                            cFieldGui.append(protokol[a] + " ");
+                                            textToDecrypt="";
+                                            for(int a=2; a<protokol.length; a++) textToDecrypt += protokol[a];
+                                            
+                                            //System.out.println(rc4.decrypt(textToDecrypt.toCharArray()));
+                                            //System.out.println(textToDecrypt);
+                                            //textToDecrypt="";
+                                             rc4 = new RC4(dh.GetKey(yourY).toString());
+                                             System.out.println(("key decrypt:"+yourY));
+                                            cFieldGui.append(new String(rc4.decrypt(textToDecrypt.toCharArray())));
                                             cFieldGui.append("\n");
+                                            //textToDecrypt="";
                                         }
-                                        else if(protokol[0].equals("KEY"))
+                                        else if (protokol[0].equals("KEY"))
                                         {
+                                            if(!protokol[1].equals("0"))
+                                            {yourY = protokol[1];}
+                                            
                                             
                                         }
                                         
 				}
-                                /*
-				catch(IOException e) 
-                                {
-					System.out.println("Server has close the connection: " + e);
-					break;
-				}*/
                                 catch(NullPointerException r)
                                 {
                                     
                                 } catch (IOException ex) {
                                 Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-                                ;
                             }
                                     
 			}

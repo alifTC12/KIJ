@@ -6,8 +6,6 @@
 
 package KIJ;
 
-import java.security.InvalidKeyException;
-
 /**
  *
  * @author alif.sip
@@ -18,50 +16,53 @@ public class RC4
     private int[] sbox;
     private static final int SBOX_LENGTH = 256;
     private static final int KEY_MIN_LENGTH = 5;
- 
+    
     public static void main(String[] args) 
     {
-        try 
-        {
-            RC4 rc4 = new RC4("testkey");
+        
+            
+        
+            RC4 rc4 = new RC4("test");
             char[] result = rc4.encrypt("riko ganteng".toCharArray());
             System.out.println("encrypted string:\n" + new String(result));
             System.out.println("decrypted string:\n"+ new String(rc4.decrypt(result)));
-        } 
-        catch (InvalidKeyException e) 
-        {
-            System.err.println(e.getMessage());
-        }
+       
     }
+   
  
-    public RC4(String key) throws InvalidKeyException 
+    RC4(String key) 
     {
         setKey(key);
     }
  
-    public RC4() {
+    RC4() {
     }
  
-    public char[] decrypt(final char[] msg) {
+    public char[] decrypt(char[] msg) 
+    {
         return encrypt(msg);
     }
  
-    public char[] encrypt(final char[] msg) 
+    //keystream generation
+    public char[] encrypt(char[] msg) 
     {
         sbox = initSBox(key);
         char[] code = new char[msg.length];
         int i = 0;
         int j = 0;
-        for (int n = 0; n < msg.length; n++) {
+        for (int n = 0; n < msg.length; n++) 
+        {
             i = (i + 1) % SBOX_LENGTH;
             j = (j + sbox[i]) % SBOX_LENGTH;
             swap(i, j, sbox);
             int rand = sbox[(sbox[i] + sbox[j]) % SBOX_LENGTH];
+            //proses enkripsi
             code[n] = (char) (rand ^ (int) msg[n]);
         }
         return code;
     }
  
+    //inisialisasi dan permutasi awal
     private int[] initSBox(char[] key) 
     {
         int[] sbox = new int[SBOX_LENGTH];
@@ -87,13 +88,8 @@ public class RC4
         sbox[j] = temp;
     }
  
-    public void setKey(String key) throws InvalidKeyException 
+    public void setKey(String key)
     {
-        if (!(key.length() >= KEY_MIN_LENGTH && key.length() < SBOX_LENGTH)) {
-            throw new InvalidKeyException("Key length has to be between "
-                    + KEY_MIN_LENGTH + " and " + (SBOX_LENGTH - 1));
-        }
- 
         this.key = key.toCharArray();
     }
  

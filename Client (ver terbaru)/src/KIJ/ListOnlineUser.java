@@ -20,11 +20,12 @@ public class ListOnlineUser extends javax.swing.JFrame {
     public ListOnlineUser() {
         initComponents();
     }
-    
+    public String key;
     private Client client;
     public String username;
     public String ip;
     public int port;
+    private DiffieHellman dh;
     DefaultListModel online = new DefaultListModel();
     
     public void Connect()
@@ -98,12 +99,25 @@ public class ListOnlineUser extends javax.swing.JFrame {
     private void starChatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_starChatActionPerformed
         // TODO add your handling code here:
         if(chatList.getSelectedValue() != null)
-        client.NewChat((String) chatList.getSelectedValue(),username);   
+        client.NewChat((String) chatList.getSelectedValue(),username);
+        
+        if (key==null)
+        {
+            key=client.MakeKey();
+        }
+        String temp="PUBLICKEY "+key+"\r\n";
+        client.sendMessage(temp);
+        String nama=(String) chatList.getSelectedValue();
+//        nama.replaceAll("\n", "");
+        temp="CHATWITH "+nama+" "+key+"\r\n";
+        client.sendMessage(temp);
+       
+ 
     }//GEN-LAST:event_starChatActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO add your handling code here:
-
+        
         client.sendMessage("WHO\r\n");
 
     }//GEN-LAST:event_jButton1ActionPerformed
@@ -111,6 +125,7 @@ public class ListOnlineUser extends javax.swing.JFrame {
     private void dconnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dconnActionPerformed
         // TODO add your handling code here:
         client.sendMessage("BYE\r\n");
+        client.disconnect();
         this.dispose();
     }//GEN-LAST:event_dconnActionPerformed
     
